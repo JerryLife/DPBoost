@@ -278,6 +278,11 @@ std::unordered_set<std::string> Config::parameter_set({
   "gpu_platform_id",
   "gpu_device_id",
   "gpu_use_dp",
+
+  "total_budget",
+  "geo_clip",
+  "high_level_boost_round",
+  "inner_boost_round",
 });
 
 void Config::GetMembersFromString(const std::unordered_map<std::string, std::string>& params) {
@@ -287,6 +292,18 @@ void Config::GetMembersFromString(const std::unordered_map<std::string, std::str
   if (GetString(params, "valid", &tmp_str)) {
     valid = Common::Split(tmp_str.c_str(), ',');
   }
+
+  GetDouble(params, "total_budget", &total_budget);
+  CHECK(total_budget >=0.0);
+
+  GetInt(params, "geo_clip", &geo_clip);
+  CHECK(geo_clip >=0);
+
+  GetInt(params, "high_level_boost_round", &high_level_boost_round);
+  CHECK(high_level_boost_round >=0);
+
+  GetInt(params, "inner_boost_round", &inner_boost_round);
+  CHECK(inner_boost_round >=0);
 
   GetInt(params, "num_iterations", &num_iterations);
   CHECK(num_iterations >=0);

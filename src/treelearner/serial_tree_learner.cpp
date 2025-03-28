@@ -245,16 +245,17 @@ Tree* SerialTreeLearner::Train(const score_t* gradients, const score_t *hessians
 
 
 //    std::cout<<"in serial tree global iter:"<<global_iter<<std::endl;
-    double total_budget = config_->total_budget / 2;
+    double total_budget_for_internal_node = config_->total_budget / 2;
     double g_m = 1.0;
-    total_budget = total_budget / config_->num_class;
-    if(total_budget != 0) {
-      if (config_->objective == std::string("regression")) {
-        g_m = 1;
-      } else if (config_->objective == std::string("binary")) {
-        g_m = 0.5;
-      }
-      g_m = 1;
+    if(config_->num_class != 1) {
+      Log::Fatal("DPBoost is not supported for multi-class classification");
+    }
+    // total_budget = total_budget / config_->num_class;
+    if(total_budget_for_internal_node != 0) {
+      g_m = 1;    // the max absolute value of a single gradient. This is true for all objective functions.
+      // Verify that g_m is the maximum absolute value of all gradients
+      // This is an important assumption for our privacy calculations
+      
       int total_iter = config_->num_iterations;
       double base = 1 - config_->learning_rate;
       double lambda = 0.1;
@@ -284,44 +285,48 @@ Tree* SerialTreeLearner::Train(const score_t* gradients, const score_t *hessians
       //double sensitivity_u = (3 * lambda + 2) * g_m * g_m / ((2 + lambda) * (1 + lambda));
       double sensitivity_u = 3 * g_m * g_m;
 
-      double budget_for_this_tree = 0;
+      double internal_budget_for_this_tree = 0;
       double budget_for_current_node;
 //      double total_budget_interval = 0;
       if(config_->boost_method == std::string("DPBoost")) {
-        budget_for_this_tree = total_budget * std::pow(sensitivity_this_tree, 2.0/3.0) / sum_leave_sensitivity;
+        internal_budget_for_this_tree = total_budget_for_internal_node * std::pow(sensitivity_this_tree, 2.0/3.0) / sum_leave_sensitivity;
 //        sensitivity_u = (3 * lambda + 2) * g_m * g_m / ((2 + lambda) * (1 + lambda));
         //sensitivity_u = 2 * g_m * g_m / (2 + lambda);
       }
       else if (config_->boost_method == std::string("infocom")) {
 //        sensitivity_u = 4;
         //sensitivity_u = 3 * g_m * g_m;
-        budget_for_this_tree = total_budget;
+        internal_budget_for_this_tree = total_budget_for_internal_node;
       }
       else if(config_->boost_method == std::string("equal")){
-        budget_for_this_tree = total_budget / total_iter;
+        internal_budget_for_this_tree = total_budget_for_internal_node / total_iter;
 //        sensitivity_u = 2 * g_m * g_m;
         //sensitivity_u = (3 * lambda + 2) * g_m * g_m / ((2 + lambda) * (1 + lambda));
       }
       else if(config_->boost_method == std::string("DPBoost_bagging")){
-        budget_for_this_tree = total_budget;
+        internal_budget_for_this_tree = total_budget_for_internal_node;
         //sensitivity_u = 2 * g_m * g_m / (2 + lambda);
       }
       else if(config_->boost_method == std::string("DPBoost_2level")){
 //        budget_for_this_tree = total_budget / config_->high_level_boost_round;
         if(config_->num_iterations % config_->inner_boost_round == 0) {
-          budget_for_this_tree = total_budget / (config_->num_iterations / config_->inner_boost_round);
+          internal_budget_for_this_tree = total_budget_for_internal_node / (config_->num_iterations / config_->inner_boost_round);
         }
         else{
-          budget_for_this_tree = total_budget / (config_->num_iterations / config_->inner_boost_round + 1);
+          internal_budget_for_this_tree = total_budget_for_internal_node / (config_->num_iterations / config_->inner_boost_round + 1);
         }
 //        sensitivity_u = g_m * g_m / (1 + lambda);
         //sensitivity_u = (3 * lambda + 2) * g_m * g_m / ((2 + lambda) * (1 + lambda));
       }
       else{
-        std::cout<<"wrong method!"<<std::endl;
+        Log::Warning("wrong method!");
       }
-      budget_for_current_node = budget_for_this_tree / 2 / config_->max_depth;
+      budget_for_current_node = internal_budget_for_this_tree / config_->max_depth;
 
+      Log::Debug("num_iterations: %d", config_->num_iterations);
+      Log::Debug("inner_boost_round: %d", config_->inner_boost_round);
+      Log::Debug("internal nodes' budget for this tree: %f", internal_budget_for_this_tree);
+      Log::Debug("budget for current node: %f", budget_for_current_node);
 
       std::vector<std::vector<double>> probs(num_features_);
 #pragma omp parallel for
@@ -465,7 +470,7 @@ Tree* SerialTreeLearner::Train(const score_t* gradients, const score_t *hessians
     cur_depth = std::max(cur_depth, tree->leaf_depth(left_leaf));
   }
   global_iter++;
-  Log::Debug("Trained a tree with leaves = %d and max_depth = %d", tree->num_leaves(), cur_depth);
+  // Log::Debug("Trained a tree with leaves = %d and max_depth = %d", tree->num_leaves(), cur_depth);
   return tree.release();
 }
 

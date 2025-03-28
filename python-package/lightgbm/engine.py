@@ -143,7 +143,7 @@ def train(params, train_set, num_boost_round=100,
     for alias in ["num_iterations", "num_iteration", "n_iter", "num_tree", "num_trees",
                   "num_round", "num_rounds", "num_boost_round", "n_estimators"]:
         if alias in params:
-            num_boost_round = params.pop(alias)
+            num_boost_round = params[alias]
             warnings.warn("Found `{}` in params. Will use it instead of argument".format(alias))
             break
     for alias in ["early_stopping_round", "early_stopping_rounds", "early_stopping"]:

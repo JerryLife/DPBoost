@@ -172,10 +172,10 @@ void Config::Set(const std::unordered_map<std::string, std::string>& params) {
   Config::GetString(params, "boost_method", &boost_method);
 //  std::cout<<"in config set"<<std::endl;
   Config::GetInt(params, "num_iterations", &num_iterations);
-//  std::cout<<"num_iterations:"<<num_iterations<<std::endl;
-  Config::GetInt(params, "my_n_trees", &new_n_iter);
+  Log::Debug("num_iterations: %d", num_iterations);
+  // Config::GetInt(params, "my_n_trees", &new_n_iter);
 //  std::cout<<"new n iter:"<<new_n_iter<<std::endl;
-  num_iterations = new_n_iter;
+  // num_iterations = new_n_iter;
 //  std::cout<<"in config set"<<std::endl;
   Config::GetInt(params, "high_level_boost_round", &high_level_boost_round);
   Config::GetInt(params, "inner_boost_round", &inner_boost_round);

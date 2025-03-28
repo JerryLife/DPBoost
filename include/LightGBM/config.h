@@ -162,13 +162,13 @@ struct Config {
   // desc = **Note**: internally, LightGBM constructs ``num_class * num_iterations`` trees for multi-class classification problems
   int num_iterations = 100;
 
-  int new_n_iter;
+  // int new_n_iter;
 
   int high_level_boost_round = 0;
 
   int inner_boost_round = 0;
 
-  int balance_partition;
+  int balance_partition = 0;
 
   int geo_clip = 1;
 
